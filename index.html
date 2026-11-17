@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TypeLingo – Gõ từ, học từ</title>
+<style>
+:root{--bg:#0f1226;--panel:#171a36;--panel2:#1e2347;--line:#2b3160;--text:#e8ebff;--mute:#8d93c4;--accent:#4aa3ff;--ok:#38d98a;--bad:#ff5d73;--warn:#ffc857}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{display:flex;flex-direction:column;min-height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:800;font-size:22px;color:var(--accent);letter-spacing:.3px}
+.sub{color:var(--mute);font-size:14px}
+body.playing header{display:none}
+#menu{padding:20px;max-width:1100px;margin:0 auto;width:100%}
+h2{font-size:15px;color:var(--mute);text-transform:uppercase;letter-spacing:1px;margin:22px 0 10px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:130px}
+.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.topic{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;user-select:none;transition:.15s}
+.topic:hover{border-color:#44509a}
+.topic.sel{border-color:var(--accent);background:var(--panel2)}
+.topic.review{border-style:dashed}
+.topic b{display:block;font-size:15px}.topic small{color:var(--mute)}
+.bar{height:6px;background:#0b0e22;border-radius:4px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:14px;user-select:none}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:#04122a;font-weight:700}
+.row{display:flex;gap:18px;flex-wrap:wrap;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.row label{display:flex;gap:8px;align-items:center;font-size:14px}
+select,input[type=range]{accent-color:var(--accent)}
+select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--accent);color:#04122a;border:0;border-radius:12px;padding:12px 26px;font-weight:800;font-size:17px;box-shadow:0 4px 0 #2a6fb8}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #2a6fb8}
+.btn.ghost{background:var(--panel2);color:var(--text);box-shadow:none;border:1px solid var(--line);font-size:14px;padding:8px 14px;font-weight:600}
+.note{color:var(--mute);font-size:13px;line-height:1.6}
+.warn{background:#2a2410;border:1px solid #5a4a14;color:#ffd98a;border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.6}
+#game{display:none;flex:1;flex-direction:column;height:100vh}
+body.playing #game{display:flex}
+body.playing #menu{display:none}
+#hud{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pill{background:#0d1029;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:700}
+#hearts{margin-left:auto;color:#ff5d8f;font-size:20px;letter-spacing:3px}
+.ib{background:#0d1029;border:1px solid var(--line);color:var(--text);border-radius:10px;width:38px;height:38px;font-size:16px}
+#stage{position:relative;flex:1;overflow:hidden;background:
+radial-gradient(circle at 85% 18%,rgba(255,120,40,.35),transparent 12%),
+radial-gradient(1.2px 1.2px at 10% 20%,#fff8,transparent),radial-gradient(1.2px 1.2px at 30% 70%,#fff8,transparent),
+radial-gradient(1.2px 1.2px at 55% 40%,#fff8,transparent),radial-gradient(1.2px 1.2px at 75% 85%,#fff8,transparent),
+radial-gradient(1.2px 1.2px at 92% 55%,#fff8,transparent),radial-gradient(1.2px 1.2px at 45% 10%,#fff8,transparent),
+linear-gradient(#150f35,#2a1457 60%,#33164f)}
+#danger{position:absolute;left:0;right:0;bottom:0;height:6px;background:var(--bad);box-shadow:0 0 22px 6px rgba(255,93,115,.55)}
+.w{position:absolute;left:0;top:0;padding:6px 22px 8px;border-radius:22px;font-weight:800;font-size:26px;white-space:nowrap;will-change:transform;border:2px solid;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.w .tag{font-style:normal;font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.6px}
+.w .done{color:var(--ok)}
+.w.en.n{background:#4a1220;border-color:#ff5d73}
+.w.en.v{background:#16164f;border-color:#6f7bff}
+.w.en.adj{background:#3a1250;border-color:#c46bff}
+.w.en.adv{background:#0f3a3a;border-color:#3fe0d0}
+.w.en.prep,.w.en.conj{background:#44330f;border-color:#ffc857}
+.w.vi{background:rgba(56,217,138,.12);border-color:var(--ok);color:#fff}
+.w.act{box-shadow:0 0 18px rgba(255,255,255,.35);z-index:3}
+.w.pop{animation:pop .35s forwards}
+@keyframes pop{to{opacity:0;filter:brightness(2)}}
+#inputbar{padding:12px 18px;background:var(--panel);border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;min-height:62px}
+#raw{color:var(--mute);font-family:ui-monospace,Consolas,monospace}
+#comp{font-size:24px;font-weight:800;min-width:120px}
+#inputbar.err{animation:shake .25s;background:#3a1020}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#overlay{position:fixed;inset:0;background:rgba(5,6,20,.82);display:none;align-items:center;justify-content:center;z-index:10}
+#overlay .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:26px 30px;max-width:560px;width:92%;max-height:88vh;overflow:auto}
+#overlay h3{margin:0 0 12px;font-size:24px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.kv div{background:#0d1029;border-radius:10px;padding:8px 12px}.kv b{font-size:20px;display:block}.kv span{color:var(--mute);font-size:12px}
+.miss li{color:#ffb4bf;margin:3px 0}
+#toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);font-size:34px;font-weight:900;color:#fff;text-shadow:0 0 20px #4aa3ff;opacity:0;pointer-events:none;transition:opacity .4s}
+</style>
+</head>
+<body>
+<header><div class="logo">TypeLingo</div><div class="sub">Gõ từ tiếng Anh → hiện nghĩa → gõ nghĩa tiếng Việt</div></header>
+
+<section id="menu">
+  <div class="warn">Trước khi chơi: hãy <b>tắt Unikey / bộ gõ tiếng Việt của máy</b> (để chế độ gõ tiếng Anh). Game đã có bộ gõ Telex/VNI riêng, chỉ bật khi từ rơi đang ở bước "gõ nghĩa tiếng Việt", còn từ tiếng Anh luôn gõ thuần.</div>
+  <h2>Thống kê của bạn</h2>
+  <div class="stats" id="stats"></div>
+  <h2>Chọn chủ đề (bỏ trống = tất cả)</h2>
+  <div class="grid" id="topics"></div>
+  <h2>Loại từ</h2>
+  <div class="chips" id="poschips"></div>
+  <h2>Cài đặt</h2>
+  <div class="row">
+    <label>Kiểu gõ <select id="sMethod"><option value="telex">Telex</option><option value="vni">VNI</option></select></label>
+    <label>Chế độ <select id="sMode"><option value="both">Anh → Việt (2 bước)</option><option value="en">Chỉ gõ tiếng Anh</option></select></label>
+    <label><input type="checkbox" id="sNoDia"> Gõ không dấu vẫn tính đúng</label>
+    <label><input type="checkbox" id="sSound"> Phát âm khi gõ đúng</label>
+    <label>Tốc độ <input type="range" id="sSpeed" min="0.6" max="1.8" step="0.1"> <span id="sSpeedV"></span></label>
+  </div>
+  <div style="margin:22px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <button class="btn" id="startBtn">▶ Bắt đầu</button>
+    <span class="note" id="poolInfo"></span>
+  </div>
+  <h2>Thêm từ của riêng bạn</h2>
+  <div class="row">
+    <input type="file" id="csvFile" accept=".csv,.txt">
+    <button class="btn ghost" id="tplBtn">Tải file CSV mẫu</button>
+    <button class="btn ghost" id="clearCustom">Xóa từ đã nhập</button>
+    <button class="btn ghost" id="resetProg">Đặt lại tiến độ</button>
+    <span class="note" id="csvMsg">Định dạng mỗi dòng: english,loại từ(n/v/adj/adv/prep/conj),nghĩa tiếng Việt,chủ đề</span>
+  </div>
+  <p class="note">Phím tắt khi chơi: <b>Esc</b> tạm dừng · <b>Backspace</b> xóa ký tự · từ tiếng Anh gõ đúng sẽ hiện nghĩa, gõ nghĩa tiếng Việt đúng thì từ mới biến mất.</p>
+</section>
+
+<section id="game">
+  <div id="hud">
+    <span class="pill" id="hScore">0</span>
+    <span class="pill" id="hLevel"></span>
+    <span class="pill" id="hWpm">0 WPM</span>
+    <span class="pill" id="hCombo">x1.0</span>
+    <span id="hearts"></span>
+    <button class="ib" id="pauseBtn" title="Tạm dừng (Esc)">⏸</button>
+    <button class="ib" id="exitBtn" title="Thoát">✕</button>
+  </div>
+  <div id="stage"><div id="danger"></div><div id="toast"></div></div>
+  <div id="inputbar"><span id="raw"></span><span id="comp"></span><span class="note" id="hint"></span></div>
+</section>
+<div id="overlay"><div class="card" id="ovc"></div></div>
+
+<script>
+//#ENGINE_START
+const VOW='aeiouy';
+const MODCH={'a^':'â','a(':'ă','e^':'ê','o^':'ô','o+':'ơ','u+':'ư','d-':'đ'};
+const TONEMARK=['','\u0301','\u0300','\u0309','\u0303','\u0323'];
+const TONEOF={'\u0301':1,'\u0300':2,'\u0309':3,'\u0303':4,'\u0323':5};
+function chOf(L){return MODCH[L.b+L.m]||L.b}
+function isVow(L){return VOW.indexOf(L.b)>=0}
+function toneIndex(L){
+  const n=L.length;
+  const isV=L.map((l,i)=>{
+    if(!isVow(l))return false;
+    if(l.b==='u'&&i>0&&L[i-1].b==='q'&&!L[i-1].m)return false;
+    if(l.b==='i'&&i===1&&L[0].b==='g'&&n>2&&isVow(L[2]))return false;
+    return true;
+  });
+  const idx=[];isV.forEach((v,i)=>{if(v)idx.push(i)});
+  if(!idx.length)return -1;
+  if(idx.length===1)return idx[0];
+  const mod=idx.filter(i=>L[i].m&&L[i].m!=='-');
+  if(mod.length)return mod[mod.length-1];
+  if(idx.length>=3)return idx[1];
+  const hasFinal=idx[idx.length-1]<n-1;
+  return hasFinal?idx[1]:idx[0];
+}
+function findBack(L,set){for(let i=L.length-1;i>=0;i--){if(set.indexOf(L[i].b)>=0&&!L[i].m)return i}return -1}
+function composeWord(raw,method){
+  const L=[];let tone=0;
+  const hasV=()=>L.some(isVow);
+  const lit=c=>L.push({b:c,m:''});
+  const setTone=(t,c)=>{if(!hasV()){lit(c);return}if(tone===t){tone=0;lit(c)}else tone=t};
+  const uoPair=()=>{const n=L.length;return n>=2&&L[n-2].b==='u'&&L[n-1].b==='o'&&!L[n-2].m&&!L[n-1].m&&!(n>=3&&L[n-3].b==='q')};
+  for(const c of raw){
+    const n=L.length,last=L[n-1];
+    if(method==='telex'){
+      if(c==='w'){
+        if(uoPair()){L[n-2].m='+';last.m='+';continue}
+        if(last&&!last.m&&last.b==='a'){last.m='(';continue}
+        if(last&&!last.m&&(last.b==='o'||last.b==='u')){last.m='+';continue}
+        if(last&&(last.m==='+'||last.m==='(')&&'aou'.indexOf(last.b)>=0){last.m='';lit('w');continue}
+        L.push({b:'u',m:'+'});continue;
+      }
+      const T={s:1,f:2,r:3,x:4,j:5,z:0}[c];
+      if(T!==undefined){
+        if(T===0){if(hasV()&&tone)tone=0;else lit(c)}else setTone(T,c);
+        continue;
+      }
+      if((c==='a'||c==='e'||c==='o')&&last&&last.b===c){
+        if(!last.m){last.m='^';continue}
+        if(last.m==='^'){last.m='';lit(c);continue}
+      }
+      if(c==='d'&&last&&last.b==='d'){
+        if(!last.m){last.m='-';continue}
+        if(last.m==='-'){last.m='';lit(c);continue}
+      }
+      lit(c);
+    }else{
+      if(c>='1'&&c<='5'){setTone(+c,c);continue}
+      if(c==='0'){if(hasV()&&tone)tone=0;else lit(c);continue}
+      if(c==='6'){const i=findBack(L,'aeo');if(i>=0)L[i].m='^';else lit(c);continue}
+      if(c==='7'){
+        if(uoPair()){L[n-2].m='+';last.m='+';continue}
+        const i=findBack(L,'ou');if(i>=0)L[i].m='+';else lit(c);continue;
+      }
+      if(c==='8'){const i=findBack(L,'a');if(i>=0)L[i].m='(';else lit(c);continue}
+      if(c==='9'){const i=findBack(L,'d');if(i>=0)L[i].m='-';else lit(c);continue}
+      lit(c);
+    }
+  }
+  const ti=tone?toneIndex(L):-1;
+  return L.map((l,i)=>{let ch=chOf(l);if(i===ti)ch=(ch+TONEMARK[tone]).normalize('NFC');return ch}).join('');
+}
+function compose(raw,method){return raw.toLowerCase().split(' ').map(w=>composeWord(w,method)).join(' ')}
+function plain(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').toLowerCase()}
+function splitTone(s){let t=0,o='';for(const ch of s.normalize('NFD')){if(TONEOF[ch])t=TONEOF[ch];else o+=ch}return{base:o.normalize('NFC'),tone:t}}
+//#ENGINE_END
+
+// ================= DỮ LIỆU =================
+const BASE=[["window","n","cửa sổ","Nhà cửa & Nội thất"],["door","n","cửa chính","Nhà cửa & Nội thất"],["hall","n","hành lang","Nhà cửa & Nội thất"],["stairs","n","cầu thang","Nhà cửa & Nội thất"],["air conditioner","n","máy lạnh","Nhà cửa & Nội thất"],["sofa","n","ghế sofa","Nhà cửa & Nội thất"],["table","n","bàn","Nhà cửa & Nội thất"],["chair","n","ghế","Nhà cửa & Nội thất"],["bed","n","giường","Nhà cửa & Nội thất"],["wardrobe","n","tủ quần áo","Nhà cửa & Nội thất"],["curtain","n","rèm cửa","Nhà cửa & Nội thất"],["carpet","n","thảm","Nhà cửa & Nội thất"],["mirror","n","gương","Nhà cửa & Nội thất"],["lamp","n","đèn bàn","Nhà cửa & Nội thất"],["fridge","n","tủ lạnh","Nhà cửa & Nội thất"],["kitchen","n","nhà bếp","Nhà cửa & Nội thất"],["bathroom","n","phòng tắm","Nhà cửa & Nội thất"],["bedroom","n","phòng ngủ","Nhà cửa & Nội thất"],["living room","n","phòng khách","Nhà cửa & Nội thất"],["roof","n","mái nhà","Nhà cửa & Nội thất"],["floor","n","sàn nhà","Nhà cửa & Nội thất"],["wall","n","bức tường","Nhà cửa & Nội thất"],["ceiling","n","trần nhà","Nhà cửa & Nội thất"],["garden","n","khu vườn","Nhà cửa & Nội thất"],["fence","n","hàng rào","Nhà cửa & Nội thất"],["shelf","n","kệ sách","Nhà cửa & Nội thất"],["pillow","n","gối","Nhà cửa & Nội thất"],["blanket","n","chăn","Nhà cửa & Nội thất"],["balcony","n","ban công","Nhà cửa & Nội thất"],["garage","n","nhà để xe","Nhà cửa & Nội thất"],["elevator","n","thang máy","Nhà cửa & Nội thất"],["mother","n","mẹ","Gia đình"],["father","n","bố","Gia đình"],["parent","n","cha mẹ","Gia đình"],["son","n","con trai","Gia đình"],["daughter","n","con gái","Gia đình"],["brother","n","anh em trai","Gia đình"],["sister","n","chị em gái","Gia đình"],["grandmother","n","bà","Gia đình"],["grandfather","n","ông","Gia đình"],["uncle","n","chú","Gia đình"],["aunt","n","cô","Gia đình"],["cousin","n","anh em họ","Gia đình"],["husband","n","chồng","Gia đình"],["wife","n","vợ","Gia đình"],["baby","n","em bé","Gia đình"],["child","n","đứa trẻ","Gia đình"],["relative","n","họ hàng","Gia đình"],["family","n","gia đình","Gia đình"],["nephew","n","cháu trai","Gia đình"],["niece","n","cháu gái","Gia đình"],["twin","n","song sinh","Gia đình"],["marry","v","kết hôn","Gia đình"],["adopt","v","nhận nuôi","Gia đình"],["raise","v","nuôi dưỡng","Gia đình"],["birthday","n","sinh nhật","Gia đình"],["wedding","n","đám cưới","Gia đình"],["neighbor","n","hàng xóm","Gia đình"],["friend","n","bạn bè","Gia đình"],["couple","n","cặp đôi","Gia đình"],["generation","n","thế hệ","Gia đình"],["rice","n","gạo","Đồ ăn & Thức uống"],["bread","n","bánh mì","Đồ ăn & Thức uống"],["egg","n","trứng","Đồ ăn & Thức uống"],["meat","n","thịt","Đồ ăn & Thức uống"],["beef","n","thịt bò","Đồ ăn & Thức uống"],["pork","n","thịt heo","Đồ ăn & Thức uống"],["chicken","n","thịt gà","Đồ ăn & Thức uống"],["fish","n","cá","Đồ ăn & Thức uống"],["shrimp","n","tôm","Đồ ăn & Thức uống"],["vegetable","n","rau củ","Đồ ăn & Thức uống"],["fruit","n","trái cây","Đồ ăn & Thức uống"],["apple","n","quả táo","Đồ ăn & Thức uống"],["banana","n","quả chuối","Đồ ăn & Thức uống"],["orange","n","quả cam","Đồ ăn & Thức uống"],["mango","n","quả xoài","Đồ ăn & Thức uống"],["milk","n","sữa","Đồ ăn & Thức uống"],["coffee","n","cà phê","Đồ ăn & Thức uống"],["tea","n","trà","Đồ ăn & Thức uống"],["juice","n","nước ép","Đồ ăn & Thức uống"],["water","n","nước","Đồ ăn & Thức uống"],["soup","n","súp","Đồ ăn & Thức uống"],["noodle","n","mì","Đồ ăn & Thức uống"],["sugar","n","đường","Đồ ăn & Thức uống"],["salt","n","muối","Đồ ăn & Thức uống"],["pepper","n","tiêu","Đồ ăn & Thức uống"],["butter","n","bơ","Đồ ăn & Thức uống"],["cheese","n","phô mai","Đồ ăn & Thức uống"],["cake","n","bánh ngọt","Đồ ăn & Thức uống"],["delicious","adj","ngon","Đồ ăn & Thức uống"],["hungry","adj","đói","Đồ ăn & Thức uống"],["thirsty","adj","khát","Đồ ăn & Thức uống"],["cook","v","nấu ăn","Đồ ăn & Thức uống"],["boil","v","luộc","Đồ ăn & Thức uống"],["fry","v","chiên","Đồ ăn & Thức uống"],["bake","v","nướng","Đồ ăn & Thức uống"],["taste","v","nếm","Đồ ăn & Thức uống"],["breakfast","n","bữa sáng","Đồ ăn & Thức uống"],["lunch","n","bữa trưa","Đồ ăn & Thức uống"],["dinner","n","bữa tối","Đồ ăn & Thức uống"],["head","n","đầu","Cơ thể & Sức khỏe"],["face","n","khuôn mặt","Cơ thể & Sức khỏe"],["eye","n","mắt","Cơ thể & Sức khỏe"],["ear","n","tai","Cơ thể & Sức khỏe"],["nose","n","mũi","Cơ thể & Sức khỏe"],["mouth","n","miệng","Cơ thể & Sức khỏe"],["tooth","n","răng","Cơ thể & Sức khỏe"],["hair","n","tóc","Cơ thể & Sức khỏe"],["neck","n","cổ","Cơ thể & Sức khỏe"],["shoulder","n","vai","Cơ thể & Sức khỏe"],["arm","n","cánh tay","Cơ thể & Sức khỏe"],["hand","n","bàn tay","Cơ thể & Sức khỏe"],["finger","n","ngón tay","Cơ thể & Sức khỏe"],["chest","n","ngực","Cơ thể & Sức khỏe"],["stomach","n","bụng","Cơ thể & Sức khỏe"],["back","n","lưng","Cơ thể & Sức khỏe"],["leg","n","chân","Cơ thể & Sức khỏe"],["knee","n","đầu gối","Cơ thể & Sức khỏe"],["foot","n","bàn chân","Cơ thể & Sức khỏe"],["heart","n","tim","Cơ thể & Sức khỏe"],["brain","n","não","Cơ thể & Sức khỏe"],["skin","n","da","Cơ thể & Sức khỏe"],["bone","n","xương","Cơ thể & Sức khỏe"],["blood","n","máu","Cơ thể & Sức khỏe"],["doctor","n","bác sĩ","Cơ thể & Sức khỏe"],["nurse","n","y tá","Cơ thể & Sức khỏe"],["hospital","n","bệnh viện","Cơ thể & Sức khỏe"],["medicine","n","thuốc","Cơ thể & Sức khỏe"],["fever","n","cơn sốt","Cơ thể & Sức khỏe"],["cough","v","ho","Cơ thể & Sức khỏe"],["headache","n","đau đầu","Cơ thể & Sức khỏe"],["healthy","adj","khỏe mạnh","Cơ thể & Sức khỏe"],["sick","adj","ốm","Cơ thể & Sức khỏe"],["injure","v","làm bị thương","Cơ thể & Sức khỏe"],["recover","v","hồi phục","Cơ thể & Sức khỏe"],["exercise","v","tập thể dục","Cơ thể & Sức khỏe"],["sleep","v","ngủ","Cơ thể & Sức khỏe"],["breathe","v","thở","Cơ thể & Sức khỏe"],["shirt","n","áo sơ mi","Quần áo & Phụ kiện"],["jacket","n","áo khoác","Quần áo & Phụ kiện"],["coat","n","áo choàng","Quần áo & Phụ kiện"],["sweater","n","áo len","Quần áo & Phụ kiện"],["dress","n","váy liền","Quần áo & Phụ kiện"],["skirt","n","chân váy","Quần áo & Phụ kiện"],["trousers","n","quần dài","Quần áo & Phụ kiện"],["jeans","n","quần jeans","Quần áo & Phụ kiện"],["shorts","n","quần đùi","Quần áo & Phụ kiện"],["sock","n","tất","Quần áo & Phụ kiện"],["shoe","n","giày","Quần áo & Phụ kiện"],["boot","n","ủng","Quần áo & Phụ kiện"],["sandal","n","dép","Quần áo & Phụ kiện"],["hat","n","mũ","Quần áo & Phụ kiện"],["cap","n","mũ lưỡi trai","Quần áo & Phụ kiện"],["scarf","n","khăn quàng","Quần áo & Phụ kiện"],["glove","n","găng tay","Quần áo & Phụ kiện"],["belt","n","thắt lưng","Quần áo & Phụ kiện"],["tie","n","cà vạt","Quần áo & Phụ kiện"],["uniform","n","đồng phục","Quần áo & Phụ kiện"],["pocket","n","túi áo","Quần áo & Phụ kiện"],["button","n","cúc áo","Quần áo & Phụ kiện"],["zipper","n","khóa kéo","Quần áo & Phụ kiện"],["wear","v","mặc","Quần áo & Phụ kiện"],["fit","v","vừa vặn","Quần áo & Phụ kiện"],["tight","adj","chật","Quần áo & Phụ kiện"],["loose","adj","rộng","Quần áo & Phụ kiện"],["fashion","n","thời trang","Quần áo & Phụ kiện"],["umbrella","n","cái ô","Quần áo & Phụ kiện"],["glasses","n","kính mắt","Quần áo & Phụ kiện"],["ring","n","nhẫn","Quần áo & Phụ kiện"],["necklace","n","vòng cổ","Quần áo & Phụ kiện"],["pajamas","n","đồ ngủ","Quần áo & Phụ kiện"],["dog","n","chó","Động vật"],["cat","n","mèo","Động vật"],["bird","n","chim","Động vật"],["horse","n","ngựa","Động vật"],["cow","n","bò","Động vật"],["pig","n","heo","Động vật"],["sheep","n","cừu","Động vật"],["goat","n","dê","Động vật"],["duck","n","vịt","Động vật"],["hen","n","gà mái","Động vật"],["rabbit","n","thỏ","Động vật"],["mouse","n","chuột","Động vật"],["elephant","n","voi","Động vật"],["tiger","n","hổ","Động vật"],["lion","n","sư tử","Động vật"],["monkey","n","khỉ","Động vật"],["bear","n","gấu","Động vật"],["wolf","n","sói","Động vật"],["fox","n","cáo","Động vật"],["deer","n","nai","Động vật"],["snake","n","rắn","Động vật"],["turtle","n","rùa","Động vật"],["frog","n","ếch","Động vật"],["butterfly","n","bướm","Động vật"],["bee","n","ong","Động vật"],["ant","n","kiến","Động vật"],["spider","n","nhện","Động vật"],["whale","n","cá voi","Động vật"],["dolphin","n","cá heo","Động vật"],["shark","n","cá mập","Động vật"],["eagle","n","đại bàng","Động vật"],["parrot","n","vẹt","Động vật"],["giraffe","n","hươu cao cổ","Động vật"],["crocodile","n","cá sấu","Động vật"],["feather","n","lông vũ","Động vật"],["wing","n","cánh","Động vật"],["tail","n","đuôi","Động vật"],["sun","n","mặt trời","Thiên nhiên & Thời tiết"],["moon","n","mặt trăng","Thiên nhiên & Thời tiết"],["star","n","ngôi sao","Thiên nhiên & Thời tiết"],["sky","n","bầu trời","Thiên nhiên & Thời tiết"],["cloud","n","đám mây","Thiên nhiên & Thời tiết"],["rain","n","mưa","Thiên nhiên & Thời tiết"],["snow","n","tuyết","Thiên nhiên & Thời tiết"],["wind","n","gió","Thiên nhiên & Thời tiết"],["storm","n","cơn bão","Thiên nhiên & Thời tiết"],["thunder","n","sấm","Thiên nhiên & Thời tiết"],["lightning","n","tia chớp","Thiên nhiên & Thời tiết"],["fog","n","sương mù","Thiên nhiên & Thời tiết"],["flood","n","lũ lụt","Thiên nhiên & Thời tiết"],["drought","n","hạn hán","Thiên nhiên & Thời tiết"],["earthquake","n","động đất","Thiên nhiên & Thời tiết"],["mountain","n","ngọn núi","Thiên nhiên & Thời tiết"],["river","n","dòng sông","Thiên nhiên & Thời tiết"],["lake","n","hồ nước","Thiên nhiên & Thời tiết"],["sea","n","biển","Thiên nhiên & Thời tiết"],["ocean","n","đại dương","Thiên nhiên & Thời tiết"],["beach","n","bãi biển","Thiên nhiên & Thời tiết"],["island","n","hòn đảo","Thiên nhiên & Thời tiết"],["forest","n","rừng","Thiên nhiên & Thời tiết"],["desert","n","sa mạc","Thiên nhiên & Thời tiết"],["valley","n","thung lũng","Thiên nhiên & Thời tiết"],["waterfall","n","thác nước","Thiên nhiên & Thời tiết"],["tree","n","cây","Thiên nhiên & Thời tiết"],["flower","n","bông hoa","Thiên nhiên & Thời tiết"],["grass","n","cỏ","Thiên nhiên & Thời tiết"],["leaf","n","lá cây","Thiên nhiên & Thời tiết"],["sunny","adj","nắng","Thiên nhiên & Thời tiết"],["cloudy","adj","nhiều mây","Thiên nhiên & Thời tiết"],["windy","adj","lộng gió","Thiên nhiên & Thời tiết"],["freezing","adj","lạnh cóng","Thiên nhiên & Thời tiết"],["humid","adj","ẩm ướt","Thiên nhiên & Thời tiết"],["temperature","n","nhiệt độ","Thiên nhiên & Thời tiết"],["season","n","mùa","Thiên nhiên & Thời tiết"],["spring","n","mùa xuân","Thiên nhiên & Thời tiết"],["summer","n","mùa hè","Thiên nhiên & Thời tiết"],["autumn","n","mùa thu","Thiên nhiên & Thời tiết"],["winter","n","mùa đông","Thiên nhiên & Thời tiết"],["airport","n","sân bay","Du lịch & Giao thông"],["flight","n","chuyến bay","Du lịch & Giao thông"],["passport","n","hộ chiếu","Du lịch & Giao thông"],["ticket","n","vé","Du lịch & Giao thông"],["luggage","n","hành lý","Du lịch & Giao thông"],["suitcase","n","vali","Du lịch & Giao thông"],["hotel","n","khách sạn","Du lịch & Giao thông"],["reservation","n","đặt chỗ","Du lịch & Giao thông"],["tourist","n","du khách","Du lịch & Giao thông"],["journey","n","hành trình","Du lịch & Giao thông"],["trip","n","chuyến đi","Du lịch & Giao thông"],["map","n","bản đồ","Du lịch & Giao thông"],["train","n","tàu hỏa","Du lịch & Giao thông"],["bus","n","xe buýt","Du lịch & Giao thông"],["taxi","n","xe taxi","Du lịch & Giao thông"],["bicycle","n","xe đạp","Du lịch & Giao thông"],["motorbike","n","xe máy","Du lịch & Giao thông"],["car","n","ô tô","Du lịch & Giao thông"],["ship","n","con tàu","Du lịch & Giao thông"],["boat","n","thuyền","Du lịch & Giao thông"],["subway","n","tàu điện ngầm","Du lịch & Giao thông"],["station","n","nhà ga","Du lịch & Giao thông"],["platform","n","sân ga","Du lịch & Giao thông"],["road","n","con đường","Du lịch & Giao thông"],["highway","n","đường cao tốc","Du lịch & Giao thông"],["bridge","n","cây cầu","Du lịch & Giao thông"],["traffic","n","giao thông","Du lịch & Giao thông"],["driver","n","tài xế","Du lịch & Giao thông"],["passenger","n","hành khách","Du lịch & Giao thông"],["depart","v","khởi hành","Du lịch & Giao thông"],["arrive","v","đến nơi","Du lịch & Giao thông"],["travel","v","du lịch","Du lịch & Giao thông"],["explore","v","khám phá","Du lịch & Giao thông"],["board","v","lên tàu","Du lịch & Giao thông"],["delay","n","sự chậm trễ","Du lịch & Giao thông"],["destination","n","điểm đến","Du lịch & Giao thông"],["visa","n","thị thực","Du lịch & Giao thông"],["customs","n","hải quan","Du lịch & Giao thông"],["souvenir","n","quà lưu niệm","Du lịch & Giao thông"],["school","n","trường học","Trường học & Giáo dục"],["teacher","n","giáo viên","Trường học & Giáo dục"],["student","n","học sinh","Trường học & Giáo dục"],["classroom","n","lớp học","Trường học & Giáo dục"],["lesson","n","bài học","Trường học & Giáo dục"],["homework","n","bài tập","Trường học & Giáo dục"],["exam","n","kỳ thi","Trường học & Giáo dục"],["test","n","bài kiểm tra","Trường học & Giáo dục"],["grade","n","điểm số","Trường học & Giáo dục"],["subject","n","môn học","Trường học & Giáo dục"],["math","n","toán học","Trường học & Giáo dục"],["science","n","khoa học","Trường học & Giáo dục"],["history","n","lịch sử","Trường học & Giáo dục"],["geography","n","địa lý","Trường học & Giáo dục"],["literature","n","văn học","Trường học & Giáo dục"],["library","n","thư viện","Trường học & Giáo dục"],["textbook","n","sách giáo khoa","Trường học & Giáo dục"],["notebook","n","quyển vở","Trường học & Giáo dục"],["pencil","n","bút chì","Trường học & Giáo dục"],["pen","n","bút mực","Trường học & Giáo dục"],["eraser","n","cục tẩy","Trường học & Giáo dục"],["ruler","n","thước kẻ","Trường học & Giáo dục"],["blackboard","n","bảng đen","Trường học & Giáo dục"],["university","n","đại học","Trường học & Giáo dục"],["degree","n","bằng cấp","Trường học & Giáo dục"],["scholarship","n","học bổng","Trường học & Giáo dục"],["knowledge","n","kiến thức","Trường học & Giáo dục"],["learn","v","học","Trường học & Giáo dục"],["teach","v","dạy","Trường học & Giáo dục"],["study","v","học bài","Trường học & Giáo dục"],["read","v","đọc","Trường học & Giáo dục"],["write","v","viết","Trường học & Giáo dục"],["spell","v","đánh vần","Trường học & Giáo dục"],["remember","v","ghi nhớ","Trường học & Giáo dục"],["forget","v","quên","Trường học & Giáo dục"],["understand","v","hiểu","Trường học & Giáo dục"],["graduate","v","tốt nghiệp","Trường học & Giáo dục"],["review","v","ôn tập","Trường học & Giáo dục"],["job","n","công việc","Công việc & Văn phòng"],["career","n","sự nghiệp","Công việc & Văn phòng"],["company","n","công ty","Công việc & Văn phòng"],["office","n","văn phòng","Công việc & Văn phòng"],["manager","n","quản lý","Công việc & Văn phòng"],["employee","n","nhân viên","Công việc & Văn phòng"],["employer","n","chủ thuê","Công việc & Văn phòng"],["colleague","n","đồng nghiệp","Công việc & Văn phòng"],["boss","n","sếp","Công việc & Văn phòng"],["salary","n","tiền lương","Công việc & Văn phòng"],["meeting","n","cuộc họp","Công việc & Văn phòng"],["project","n","dự án","Công việc & Văn phòng"],["deadline","n","hạn chót","Công việc & Văn phòng"],["report","n","báo cáo","Công việc & Văn phòng"],["contract","n","hợp đồng","Công việc & Văn phòng"],["interview","n","phỏng vấn","Công việc & Văn phòng"],["resume","n","sơ yếu lý lịch","Công việc & Văn phòng"],["skill","n","kỹ năng","Công việc & Văn phòng"],["experience","n","kinh nghiệm","Công việc & Văn phòng"],["client","n","khách hàng","Công việc & Văn phòng"],["business","n","kinh doanh","Công việc & Văn phòng"],["profit","n","lợi nhuận","Công việc & Văn phòng"],["budget","n","ngân sách","Công việc & Văn phòng"],["schedule","n","lịch trình","Công việc & Văn phòng"],["promote","v","thăng chức","Công việc & Văn phòng"],["hire","v","thuê","Công việc & Văn phòng"],["resign","v","từ chức","Công việc & Văn phòng"],["apply","v","ứng tuyển","Công việc & Văn phòng"],["manage","v","điều hành","Công việc & Văn phòng"],["negotiate","v","đàm phán","Công việc & Văn phòng"],["deliver","v","giao hàng","Công việc & Văn phòng"],["organize","v","tổ chức","Công việc & Văn phòng"],["attend","v","tham dự","Công việc & Văn phòng"],["print","v","in ấn","Công việc & Văn phòng"],["engineer","n","kỹ sư","Công việc & Văn phòng"],["lawyer","n","luật sư","Công việc & Văn phòng"],["accountant","n","kế toán","Công việc & Văn phòng"],["farmer","n","nông dân","Công việc & Văn phòng"],["chef","n","đầu bếp","Công việc & Văn phòng"],["computer","n","máy tính","Công nghệ"],["laptop","n","máy tính xách tay","Công nghệ"],["keyboard","n","bàn phím","Công nghệ"],["screen","n","màn hình","Công nghệ"],["phone","n","điện thoại","Công nghệ"],["internet","n","mạng internet","Công nghệ"],["website","n","trang web","Công nghệ"],["email","n","thư điện tử","Công nghệ"],["password","n","mật khẩu","Công nghệ"],["software","n","phần mềm","Công nghệ"],["hardware","n","phần cứng","Công nghệ"],["application","n","ứng dụng","Công nghệ"],["file","n","tập tin","Công nghệ"],["folder","n","thư mục","Công nghệ"],["data","n","dữ liệu","Công nghệ"],["database","n","cơ sở dữ liệu","Công nghệ"],["network","n","mạng lưới","Công nghệ"],["server","n","máy chủ","Công nghệ"],["battery","n","pin","Công nghệ"],["charger","n","bộ sạc","Công nghệ"],["camera","n","máy ảnh","Công nghệ"],["robot","n","người máy","Công nghệ"],["code","n","mã nguồn","Công nghệ"],["program","n","chương trình","Công nghệ"],["download","v","tải xuống","Công nghệ"],["upload","v","tải lên","Công nghệ"],["install","v","cài đặt","Công nghệ"],["delete","v","xóa","Công nghệ"],["save","v","lưu","Công nghệ"],["click","v","nhấp chuột","Công nghệ"],["type","v","gõ phím","Công nghệ"],["search","v","tìm kiếm","Công nghệ"],["connect","v","kết nối","Công nghệ"],["update","v","cập nhật","Công nghệ"],["backup","n","sao lưu","Công nghệ"],["virus","n","vi rút","Công nghệ"],["money","n","tiền","Mua sắm & Tiền bạc"],["cash","n","tiền mặt","Mua sắm & Tiền bạc"],["coin","n","đồng xu","Mua sắm & Tiền bạc"],["bank","n","ngân hàng","Mua sắm & Tiền bạc"],["account","n","tài khoản","Mua sắm & Tiền bạc"],["price","n","giá cả","Mua sắm & Tiền bạc"],["cost","n","chi phí","Mua sắm & Tiền bạc"],["discount","n","giảm giá","Mua sắm & Tiền bạc"],["sale","n","khuyến mãi","Mua sắm & Tiền bạc"],["receipt","n","hóa đơn","Mua sắm & Tiền bạc"],["market","n","chợ","Mua sắm & Tiền bạc"],["supermarket","n","siêu thị","Mua sắm & Tiền bạc"],["shop","n","cửa hàng","Mua sắm & Tiền bạc"],["cashier","n","thu ngân","Mua sắm & Tiền bạc"],["basket","n","giỏ hàng","Mua sắm & Tiền bạc"],["bargain","n","món hời","Mua sắm & Tiền bạc"],["expensive","adj","đắt đỏ","Mua sắm & Tiền bạc"],["cheap","adj","rẻ","Mua sắm & Tiền bạc"],["free","adj","miễn phí","Mua sắm & Tiền bạc"],["rich","adj","giàu có","Mua sắm & Tiền bạc"],["poor","adj","nghèo","Mua sắm & Tiền bạc"],["buy","v","mua","Mua sắm & Tiền bạc"],["sell","v","bán","Mua sắm & Tiền bạc"],["pay","v","trả tiền","Mua sắm & Tiền bạc"],["spend","v","tiêu xài","Mua sắm & Tiền bạc"],["borrow","v","vay mượn","Mua sắm & Tiền bạc"],["lend","v","cho vay","Mua sắm & Tiền bạc"],["earn","v","kiếm tiền","Mua sắm & Tiền bạc"],["afford","v","đủ khả năng","Mua sắm & Tiền bạc"],["exchange","v","trao đổi","Mua sắm & Tiền bạc"],["refund","n","hoàn tiền","Mua sắm & Tiền bạc"],["tax","n","thuế","Mua sắm & Tiền bạc"],["wallet","n","ví tiền","Mua sắm & Tiền bạc"],["credit card","n","thẻ tín dụng","Mua sắm & Tiền bạc"],["happy","adj","vui vẻ","Cảm xúc"],["sad","adj","buồn bã","Cảm xúc"],["angry","adj","tức giận","Cảm xúc"],["afraid","adj","sợ hãi","Cảm xúc"],["nervous","adj","lo lắng","Cảm xúc"],["excited","adj","phấn khích","Cảm xúc"],["bored","adj","chán nản","Cảm xúc"],["tired","adj","mệt mỏi","Cảm xúc"],["lonely","adj","cô đơn","Cảm xúc"],["proud","adj","tự hào","Cảm xúc"],["jealous","adj","ghen tị","Cảm xúc"],["shy","adj","nhút nhát","Cảm xúc"],["surprised","adj","ngạc nhiên","Cảm xúc"],["confused","adj","bối rối","Cảm xúc"],["grateful","adj","biết ơn","Cảm xúc"],["worried","adj","lo âu","Cảm xúc"],["calm","adj","bình tĩnh","Cảm xúc"],["cheerful","adj","hớn hở","Cảm xúc"],["disappointed","adj","thất vọng","Cảm xúc"],["embarrassed","adj","xấu hổ","Cảm xúc"],["love","v","yêu","Cảm xúc"],["hate","v","ghét","Cảm xúc"],["miss","v","nhớ nhung","Cảm xúc"],["hope","v","hy vọng","Cảm xúc"],["fear","n","nỗi sợ","Cảm xúc"],["joy","n","niềm vui","Cảm xúc"],["anger","n","cơn giận","Cảm xúc"],["smile","v","mỉm cười","Cảm xúc"],["cry","v","khóc","Cảm xúc"],["laugh","v","cười","Cảm xúc"],["trust","v","tin tưởng","Cảm xúc"],["care","v","quan tâm","Cảm xúc"],["enjoy","v","tận hưởng","Cảm xúc"],["go","v","đi","Động từ thông dụng"],["come","v","đến","Động từ thông dụng"],["run","v","chạy","Động từ thông dụng"],["walk","v","đi bộ","Động từ thông dụng"],["jump","v","nhảy","Động từ thông dụng"],["sit","v","ngồi","Động từ thông dụng"],["stand","v","đứng","Động từ thông dụng"],["eat","v","ăn","Động từ thông dụng"],["drink","v","uống","Động từ thông dụng"],["see","v","nhìn thấy","Động từ thông dụng"],["hear","v","nghe thấy","Động từ thông dụng"],["speak","v","nói","Động từ thông dụng"],["talk","v","trò chuyện","Động từ thông dụng"],["tell","v","kể","Động từ thông dụng"],["ask","v","hỏi","Động từ thông dụng"],["answer","v","trả lời","Động từ thông dụng"],["give","v","cho","Động từ thông dụng"],["take","v","lấy","Động từ thông dụng"],["make","v","làm ra","Động từ thông dụng"],["do","v","làm","Động từ thông dụng"],["have","v","có","Động từ thông dụng"],["get","v","nhận được","Động từ thông dụng"],["put","v","đặt","Động từ thông dụng"],["open","v","mở","Động từ thông dụng"],["close","v","đóng","Động từ thông dụng"],["start","v","bắt đầu","Động từ thông dụng"],["finish","v","hoàn thành","Động từ thông dụng"],["stop","v","dừng lại","Động từ thông dụng"],["wait","v","chờ đợi","Động từ thông dụng"],["help","v","giúp đỡ","Động từ thông dụng"],["want","v","muốn","Động từ thông dụng"],["need","v","cần","Động từ thông dụng"],["like","v","thích","Động từ thông dụng"],["know","v","biết","Động từ thông dụng"],["think","v","suy nghĩ","Động từ thông dụng"],["believe","v","tin","Động từ thông dụng"],["feel","v","cảm thấy","Động từ thông dụng"],["try","v","thử","Động từ thông dụng"],["use","v","sử dụng","Động từ thông dụng"],["find","v","tìm thấy","Động từ thông dụng"],["lose","v","đánh mất","Động từ thông dụng"],["bring","v","mang theo","Động từ thông dụng"],["carry","v","mang vác","Động từ thông dụng"],["hold","v","cầm","Động từ thông dụng"],["push","v","đẩy","Động từ thông dụng"],["pull","v","kéo","Động từ thông dụng"],["throw","v","ném","Động từ thông dụng"],["catch","v","bắt lấy","Động từ thông dụng"],["break","v","làm vỡ","Động từ thông dụng"],["build","v","xây dựng","Động từ thông dụng"],["change","v","thay đổi","Động từ thông dụng"],["choose","v","lựa chọn","Động từ thông dụng"],["decide","v","quyết định","Động từ thông dụng"],["follow","v","đi theo","Động từ thông dụng"],["keep","v","giữ","Động từ thông dụng"],["leave","v","rời đi","Động từ thông dụng"],["meet","v","gặp gỡ","Động từ thông dụng"],["send","v","gửi","Động từ thông dụng"],["show","v","cho xem","Động từ thông dụng"],["win","v","chiến thắng","Động từ thông dụng"],["clean","v","dọn dẹp","Động từ thông dụng"],["big","adj","to lớn","Tính từ thông dụng"],["small","adj","nhỏ bé","Tính từ thông dụng"],["tall","adj","cao","Tính từ thông dụng"],["short","adj","thấp","Tính từ thông dụng"],["long","adj","dài","Tính từ thông dụng"],["wide","adj","rộng rãi","Tính từ thông dụng"],["narrow","adj","hẹp","Tính từ thông dụng"],["heavy","adj","nặng","Tính từ thông dụng"],["light","adj","nhẹ","Tính từ thông dụng"],["fast","adj","nhanh","Tính từ thông dụng"],["slow","adj","chậm","Tính từ thông dụng"],["hot","adj","nóng","Tính từ thông dụng"],["cold","adj","lạnh","Tính từ thông dụng"],["warm","adj","ấm áp","Tính từ thông dụng"],["cool","adj","mát mẻ","Tính từ thông dụng"],["new","adj","mới","Tính từ thông dụng"],["old","adj","cũ","Tính từ thông dụng"],["young","adj","trẻ","Tính từ thông dụng"],["beautiful","adj","xinh đẹp","Tính từ thông dụng"],["ugly","adj","xấu xí","Tính từ thông dụng"],["good","adj","tốt","Tính từ thông dụng"],["bad","adj","tệ","Tính từ thông dụng"],["easy","adj","dễ dàng","Tính từ thông dụng"],["difficult","adj","khó khăn","Tính từ thông dụng"],["simple","adj","đơn giản","Tính từ thông dụng"],["hard","adj","cứng","Tính từ thông dụng"],["soft","adj","mềm mại","Tính từ thông dụng"],["strong","adj","mạnh mẽ","Tính từ thông dụng"],["weak","adj","yếu ớt","Tính từ thông dụng"],["dirty","adj","bẩn thỉu","Tính từ thông dụng"],["full","adj","đầy","Tính từ thông dụng"],["empty","adj","trống rỗng","Tính từ thông dụng"],["dark","adj","tối","Tính từ thông dụng"],["bright","adj","sáng","Tính từ thông dụng"],["quiet","adj","yên tĩnh","Tính từ thông dụng"],["noisy","adj","ồn ào","Tính từ thông dụng"],["safe","adj","an toàn","Tính từ thông dụng"],["dangerous","adj","nguy hiểm","Tính từ thông dụng"],["important","adj","quan trọng","Tính từ thông dụng"],["popular","adj","phổ biến","Tính từ thông dụng"],["famous","adj","nổi tiếng","Tính từ thông dụng"],["useful","adj","hữu ích","Tính từ thông dụng"],["interesting","adj","thú vị","Tính từ thông dụng"],["boring","adj","nhàm chán","Tính từ thông dụng"],["wet","adj","ướt","Tính từ thông dụng"],["dry","adj","khô","Tính từ thông dụng"],["correct","adj","chính xác","Tính từ thông dụng"],["wrong","adj","sai lầm","Tính từ thông dụng"],["lucky","adj","may mắn","Tính từ thông dụng"],["polite","adj","lịch sự","Tính từ thông dụng"],["kind","adj","tử tế","Tính từ thông dụng"],["honest","adj","trung thực","Tính từ thông dụng"],["brave","adj","dũng cảm","Tính từ thông dụng"],["clever","adj","thông minh","Tính từ thông dụng"],["lazy","adj","lười biếng","Tính từ thông dụng"],["busy","adj","bận rộn","Tính từ thông dụng"],["second","n","giây","Thời gian & Số đếm"],["minute","n","phút","Thời gian & Số đếm"],["hour","n","giờ","Thời gian & Số đếm"],["day","n","ngày","Thời gian & Số đếm"],["week","n","tuần","Thời gian & Số đếm"],["month","n","tháng","Thời gian & Số đếm"],["year","n","năm","Thời gian & Số đếm"],["decade","n","thập kỷ","Thời gian & Số đếm"],["century","n","thế kỷ","Thời gian & Số đếm"],["morning","n","buổi sáng","Thời gian & Số đếm"],["afternoon","n","buổi chiều","Thời gian & Số đếm"],["evening","n","buổi tối","Thời gian & Số đếm"],["night","n","ban đêm","Thời gian & Số đếm"],["midnight","n","nửa đêm","Thời gian & Số đếm"],["today","n","hôm nay","Thời gian & Số đếm"],["tomorrow","n","ngày mai","Thời gian & Số đếm"],["yesterday","n","hôm qua","Thời gian & Số đếm"],["weekend","n","cuối tuần","Thời gian & Số đếm"],["monday","n","thứ hai","Thời gian & Số đếm"],["tuesday","n","thứ ba","Thời gian & Số đếm"],["wednesday","n","thứ tư","Thời gian & Số đếm"],["thursday","n","thứ năm","Thời gian & Số đếm"],["friday","n","thứ sáu","Thời gian & Số đếm"],["saturday","n","thứ bảy","Thời gian & Số đếm"],["sunday","n","chủ nhật","Thời gian & Số đếm"],["one","n","một","Thời gian & Số đếm"],["two","n","hai","Thời gian & Số đếm"],["three","n","ba","Thời gian & Số đếm"],["four","n","bốn","Thời gian & Số đếm"],["five","n","năm","Thời gian & Số đếm"],["six","n","sáu","Thời gian & Số đếm"],["seven","n","bảy","Thời gian & Số đếm"],["eight","n","tám","Thời gian & Số đếm"],["nine","n","chín","Thời gian & Số đếm"],["ten","n","mười","Thời gian & Số đếm"],["hundred","n","một trăm","Thời gian & Số đếm"],["thousand","n","một nghìn","Thời gian & Số đếm"],["million","n","một triệu","Thời gian & Số đếm"],["half","n","một nửa","Thời gian & Số đếm"],["double","adj","gấp đôi","Thời gian & Số đếm"],["early","adv","sớm","Thời gian & Số đếm"],["late","adv","muộn","Thời gian & Số đếm"],["often","adv","thường xuyên","Thời gian & Số đếm"],["always","adv","luôn luôn","Thời gian & Số đếm"],["never","adv","không bao giờ","Thời gian & Số đếm"],["sometimes","adv","thỉnh thoảng","Thời gian & Số đếm"],["soon","adv","sắp tới","Thời gian & Số đếm"],["city","n","thành phố","Thành phố & Địa điểm"],["village","n","làng quê","Thành phố & Địa điểm"],["town","n","thị trấn","Thành phố & Địa điểm"],["street","n","đường phố","Thành phố & Địa điểm"],["building","n","tòa nhà","Thành phố & Địa điểm"],["skyscraper","n","nhà chọc trời","Thành phố & Địa điểm"],["park","n","công viên","Thành phố & Địa điểm"],["museum","n","bảo tàng","Thành phố & Địa điểm"],["cinema","n","rạp chiếu phim","Thành phố & Địa điểm"],["theater","n","nhà hát","Thành phố & Địa điểm"],["restaurant","n","nhà hàng","Thành phố & Địa điểm"],["cafe","n","quán cà phê","Thành phố & Địa điểm"],["bakery","n","tiệm bánh","Thành phố & Địa điểm"],["pharmacy","n","hiệu thuốc","Thành phố & Địa điểm"],["post office","n","bưu điện","Thành phố & Địa điểm"],["police station","n","đồn công an","Thành phố & Địa điểm"],["church","n","nhà thờ","Thành phố & Địa điểm"],["temple","n","ngôi chùa","Thành phố & Địa điểm"],["stadium","n","sân vận động","Thành phố & Địa điểm"],["zoo","n","sở thú","Thành phố & Địa điểm"],["harbor","n","bến cảng","Thành phố & Địa điểm"],["factory","n","nhà máy","Thành phố & Địa điểm"],["farm","n","nông trại","Thành phố & Địa điểm"],["neighborhood","n","khu phố","Thành phố & Địa điểm"],["crossroad","n","ngã tư","Thành phố & Địa điểm"],["sidewalk","n","vỉa hè","Thành phố & Địa điểm"],["traffic light","n","đèn giao thông","Thành phố & Địa điểm"],["corner","n","góc phố","Thành phố & Địa điểm"],["downtown","n","trung tâm","Thành phố & Địa điểm"],["suburb","n","vùng ngoại ô","Thành phố & Địa điểm"],["capital","n","thủ đô","Thành phố & Địa điểm"],["country","n","đất nước","Thành phố & Địa điểm"],["border","n","biên giới","Thành phố & Địa điểm"],["address","n","địa chỉ","Thành phố & Địa điểm"],["hobby","n","sở thích","Sở thích & Thể thao"],["football","n","bóng đá","Sở thích & Thể thao"],["basketball","n","bóng rổ","Sở thích & Thể thao"],["tennis","n","quần vợt","Sở thích & Thể thao"],["badminton","n","cầu lông","Sở thích & Thể thao"],["swimming","n","bơi lội","Sở thích & Thể thao"],["cycling","n","đạp xe","Sở thích & Thể thao"],["hiking","n","đi bộ đường dài","Sở thích & Thể thao"],["fishing","n","câu cá","Sở thích & Thể thao"],["camping","n","cắm trại","Sở thích & Thể thao"],["painting","n","hội họa","Sở thích & Thể thao"],["drawing","n","vẽ tranh","Sở thích & Thể thao"],["singing","n","ca hát","Sở thích & Thể thao"],["dancing","n","khiêu vũ","Sở thích & Thể thao"],["reading","n","đọc sách","Sở thích & Thể thao"],["gaming","n","chơi game","Sở thích & Thể thao"],["photography","n","nhiếp ảnh","Sở thích & Thể thao"],["cooking","n","nấu nướng","Sở thích & Thể thao"],["gardening","n","làm vườn","Sở thích & Thể thao"],["collect","v","sưu tầm","Sở thích & Thể thao"],["team","n","đội bóng","Sở thích & Thể thao"],["coach","n","huấn luyện viên","Sở thích & Thể thao"],["player","n","cầu thủ","Sở thích & Thể thao"],["match","n","trận đấu","Sở thích & Thể thao"],["goal","n","bàn thắng","Sở thích & Thể thao"],["score","n","tỷ số","Sở thích & Thể thao"],["champion","n","nhà vô địch","Sở thích & Thể thao"],["medal","n","huy chương","Sở thích & Thể thao"],["race","n","cuộc đua","Sở thích & Thể thao"],["compete","v","thi đấu","Sở thích & Thể thao"],["practice","v","luyện tập","Sở thích & Thể thao"],["kick","v","đá","Sở thích & Thể thao"],["swim","v","bơi","Sở thích & Thể thao"],["climb","v","leo trèo","Sở thích & Thể thao"],["ride","v","cưỡi","Sở thích & Thể thao"],["music","n","âm nhạc","Sở thích & Thể thao"],["guitar","n","đàn ghi ta","Sở thích & Thể thao"],["piano","n","đàn piano","Sở thích & Thể thao"],["movie","n","bộ phim","Sở thích & Thể thao"],["red","adj","màu đỏ","Màu sắc & Hình dạng"],["blue","adj","màu xanh dương","Màu sắc & Hình dạng"],["green","adj","màu xanh lá","Màu sắc & Hình dạng"],["yellow","adj","màu vàng","Màu sắc & Hình dạng"],["purple","adj","màu tím","Màu sắc & Hình dạng"],["pink","adj","màu hồng","Màu sắc & Hình dạng"],["brown","adj","màu nâu","Màu sắc & Hình dạng"],["black","adj","màu đen","Màu sắc & Hình dạng"],["white","adj","màu trắng","Màu sắc & Hình dạng"],["gray","adj","màu xám","Màu sắc & Hình dạng"],["gold","n","vàng kim","Màu sắc & Hình dạng"],["silver","n","màu bạc","Màu sắc & Hình dạng"],["circle","n","hình tròn","Màu sắc & Hình dạng"],["square","n","hình vuông","Màu sắc & Hình dạng"],["triangle","n","hình tam giác","Màu sắc & Hình dạng"],["rectangle","n","hình chữ nhật","Màu sắc & Hình dạng"],["oval","n","hình bầu dục","Màu sắc & Hình dạng"],["cube","n","khối lập phương","Màu sắc & Hình dạng"],["sphere","n","hình cầu","Màu sắc & Hình dạng"],["line","n","đường thẳng","Màu sắc & Hình dạng"],["curve","n","đường cong","Màu sắc & Hình dạng"],["edge","n","cạnh","Màu sắc & Hình dạng"],["point","n","điểm","Màu sắc & Hình dạng"],["size","n","kích cỡ","Màu sắc & Hình dạng"],["pattern","n","họa tiết","Màu sắc & Hình dạng"],["stripe","n","sọc","Màu sắc & Hình dạng"],["dot","n","chấm","Màu sắc & Hình dạng"],["and","conj","và","Trạng từ & Giới từ"],["but","conj","nhưng","Trạng từ & Giới từ"],["or","conj","hoặc","Trạng từ & Giới từ"],["because","conj","bởi vì","Trạng từ & Giới từ"],["although","conj","mặc dù","Trạng từ & Giới từ"],["however","adv","tuy nhiên","Trạng từ & Giới từ"],["therefore","adv","do đó","Trạng từ & Giới từ"],["so","conj","vì vậy","Trạng từ & Giới từ"],["if","conj","nếu","Trạng từ & Giới từ"],["while","conj","trong khi","Trạng từ & Giới từ"],["unless","conj","trừ khi","Trạng từ & Giới từ"],["before","prep","trước khi","Trạng từ & Giới từ"],["after","prep","sau khi","Trạng từ & Giới từ"],["during","prep","trong suốt","Trạng từ & Giới từ"],["between","prep","ở giữa","Trạng từ & Giới từ"],["among","prep","trong số","Trạng từ & Giới từ"],["behind","prep","phía sau","Trạng từ & Giới từ"],["beside","prep","bên cạnh","Trạng từ & Giới từ"],["above","prep","phía trên","Trạng từ & Giới từ"],["below","prep","phía dưới","Trạng từ & Giới từ"],["inside","prep","bên trong","Trạng từ & Giới từ"],["outside","prep","bên ngoài","Trạng từ & Giới từ"],["near","prep","gần","Trạng từ & Giới từ"],["far","adv","xa","Trạng từ & Giới từ"],["here","adv","ở đây","Trạng từ & Giới từ"],["there","adv","ở đó","Trạng từ & Giới từ"],["very","adv","rất","Trạng từ & Giới từ"],["quite","adv","khá là","Trạng từ & Giới từ"],["too","adv","quá","Trạng từ & Giới từ"],["also","adv","cũng","Trạng từ & Giới từ"],["only","adv","chỉ","Trạng từ & Giới từ"],["just","adv","vừa mới","Trạng từ & Giới từ"],["already","adv","đã","Trạng từ & Giới từ"],["yet","adv","chưa","Trạng từ & Giới từ"],["still","adv","vẫn","Trạng từ & Giới từ"],["again","adv","lại nữa","Trạng từ & Giới từ"],["together","adv","cùng nhau","Trạng từ & Giới từ"],["alone","adv","một mình","Trạng từ & Giới từ"],["quickly","adv","nhanh chóng","Trạng từ & Giới từ"],["slowly","adv","chậm rãi","Trạng từ & Giới từ"],["carefully","adv","cẩn thận","Trạng từ & Giới từ"],["suddenly","adv","đột nhiên","Trạng từ & Giới từ"],["maybe","adv","có lẽ","Trạng từ & Giới từ"],["probably","adv","chắc là","Trạng từ & Giới từ"]];
+const $=s=>document.querySelector(s);
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const POS_VI={n:'Danh từ',v:'Động từ',adj:'Tính từ',adv:'Trạng từ',prep:'Giới từ',conj:'Liên từ'};
+let settings=Object.assign({method:'telex',noDia:false,sound:true,speed:1,mode:'both'},ls.get('tl_settings',{}));
+let PROG=ls.get('tl_prog',{});
+let BEST=ls.get('tl_best',{score:0,wpm:0});
+let ALL=[],TOPICS=[];
+const selTopics=new Set(),selPos=new Set();
+
+function buildAll(){
+  const custom=ls.get('tl_custom',[]);
+  const seen=new Set();ALL=[];
+  for(const [en,pos,vi,topic] of [...BASE,...custom]){
+    const id=en.toLowerCase()+'|'+pos;
+    if(seen.has(id))continue;seen.add(id);
+    ALL.push({id,en:en.toLowerCase().trim(),pos,vi:vi.toLowerCase().trim(),topic});
+  }
+  TOPICS=[...new Set(ALL.map(w=>w.topic))];
+}
+
+// ================= MENU =================
+function poolFor(){
+  let p;
+  if(selTopics.has('__review')){p=ALL.filter(w=>PROG[w.id]&&PROG[w.id].box<=1)}
+  else p=ALL.filter(w=>!selTopics.size||selTopics.has(w.topic));
+  if(selPos.size)p=p.filter(w=>selPos.has(w.pos));
+  return p;
+}
+function renderMenu(){
+  const mastered=ALL.filter(w=>PROG[w.id]&&PROG[w.id].box>=3).length;
+  const review=ALL.filter(w=>PROG[w.id]&&PROG[w.id].box<=1).length;
+  $('#stats').innerHTML=[[ALL.length,'từ trong kho'],[mastered,'từ đã thuộc'],[review,'từ cần ôn'],[BEST.wpm,'WPM cao nhất'],[BEST.score,'điểm cao nhất']].map(([a,b])=>`<div class="stat"><b>${a}</b><span>${b}</span></div>`).join('');
+  let h=`<div class="topic review ${selTopics.has('__review')?'sel':''}" data-t="__review"><b>🔁 Ôn từ gõ sai</b><small>${review} từ</small></div>`;
+  for(const t of TOPICS){
+    const ws=ALL.filter(w=>w.topic===t),m=ws.filter(w=>PROG[w.id]&&PROG[w.id].box>=3).length;
+    h+=`<div class="topic ${selTopics.has(t)?'sel':''}" data-t="${esc(t)}"><b>${esc(t)}</b><small>${m}/${ws.length} từ đã thuộc</small><div class="bar"><i style="width:${ws.length?m*100/ws.length:0}%"></i></div></div>`;
+  }
+  $('#topics').innerHTML=h;
+  $('#poschips').innerHTML=Object.keys(POS_VI).map(p=>`<span class="chip ${selPos.has(p)?'sel':''}" data-p="${p}">${POS_VI[p]} (${p})</span>`).join('');
+  $('#poolInfo').textContent=`Sẽ chơi với ${poolFor().length} từ`;
+  $('#sMethod').value=settings.method;$('#sMode').value=settings.mode;$('#sNoDia').checked=settings.noDia;$('#sSound').checked=settings.sound;
+  $('#sSpeed').value=settings.speed;$('#sSpeedV').textContent='x'+settings.speed;
+}
+$('#topics').addEventListener('click',e=>{
+  const t=e.target.closest('.topic');if(!t)return;const k=t.dataset.t;
+  if(k==='__review'){const was=selTopics.has(k);selTopics.clear();if(!was)selTopics.add(k)}
+  else{selTopics.delete('__review');selTopics.has(k)?selTopics.delete(k):selTopics.add(k)}
+  renderMenu();
+});
+$('#poschips').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;const p=c.dataset.p;selPos.has(p)?selPos.delete(p):selPos.add(p);renderMenu()});
+function saveSettings(){ls.set('tl_settings',settings)}
+$('#sMethod').onchange=e=>{settings.method=e.target.value;saveSettings()};
+$('#sMode').onchange=e=>{settings.mode=e.target.value;saveSettings()};
+$('#sNoDia').onchange=e=>{settings.noDia=e.target.checked;saveSettings()};
+$('#sSound').onchange=e=>{settings.sound=e.target.checked;saveSettings()};
+$('#sSpeed').oninput=e=>{settings.speed=+e.target.value;$('#sSpeedV').textContent='x'+settings.speed;saveSettings()};
+$('#resetProg').onclick=()=>{if(confirm('Xóa toàn bộ tiến độ học?')){PROG={};ls.set('tl_prog',PROG);renderMenu()}};
+$('#clearCustom').onclick=()=>{if(confirm('Xóa tất cả từ bạn đã nhập?')){ls.set('tl_custom',[]);buildAll();renderMenu();$('#csvMsg').textContent='Đã xóa từ nhập thêm.'}};
+$('#tplBtn').onclick=()=>{
+  const b=new Blob(['english,pos,vietnamese,topic\nwindow,n,cửa sổ,Nhà cửa\nrun,v,chạy,Động từ\n'],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='mau-tu-vung.csv';a.click();
+};
+function parseCSVLine(l){const o=[];let cur='',q=false;for(let i=0;i<l.length;i++){const c=l[i];if(q){if(c==='"'){if(l[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}else if(c==='"')q=true;else if(c===','){o.push(cur);cur=''}else cur+=c}o.push(cur);return o.map(s=>s.trim())}
+$('#csvFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const lines=(await f.text()).replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
+  const add=[];
+  for(const l of lines){
+    const p=parseCSVLine(l);if(p.length<3)continue;
+    if(/^english$/i.test(p[0]))continue;
+    let pos=(p[1]||'n').toLowerCase();if(!POS_VI[pos])pos='n';
+    add.push([p[0],pos,p[2],p[3]||'Từ của tôi']);
+  }
+  ls.set('tl_custom',[...ls.get('tl_custom',[]),...add]);buildAll();renderMenu();
+  $('#csvMsg').textContent=`Đã nhập ${add.length} từ.`;e.target.value='';
+};
+
+// ================= GAME =================
+let G=null;
+const stage=$('#stage');
+function weight(w){const p=PROG[w.id];if(!p)return 3;return [6,4,2.5,1.2,0.4][Math.min(p.box,4)]}
+function pickWord(){
+  const onScreen=G.words.map(w=>w.d.id);
+  const firsts=G.words.filter(w=>w.stage==='en').map(w=>w.d.en[0]);
+  let cands=G.pool.filter(w=>!onScreen.includes(w.id));
+  const better=cands.filter(w=>!firsts.includes(w.en[0]));
+  if(better.length)cands=better;
+  if(!cands.length)cands=G.pool;
+  let tot=cands.reduce((s,w)=>s+weight(w),0),r=Math.random()*tot;
+  for(const w of cands){r-=weight(w);if(r<=0)return w}
+  return cands[cands.length-1];
+}
+function startGame(){
+  const pool=poolFor();
+  if(!pool.length){alert('Chưa có từ nào để chơi. Hãy chọn chủ đề khác hoặc chơi thêm để có từ cần ôn.');return}
+  G={pool,topicLabel:selTopics.has('__review')?'Ôn tập':(selTopics.size===1?[...selTopics][0]:(selTopics.size?selTopics.size+' chủ đề':'Tất cả chủ đề')),
+     words:[],score:0,lives:5,level:1,done:0,combo:0,buf:'',correct:0,errors:0,elapsed:0,spawnT:0,missed:[],learned:new Set(),paused:false,over:false,last:performance.now()};
+  document.body.classList.add('playing');hideOverlay();
+  stage.querySelectorAll('.w').forEach(e=>e.remove());
+  hud();updateInput();
+  requestAnimationFrame(loop);
+}
+$('#startBtn').onclick=startGame;
+function maxW(){return Math.min(8,3+Math.floor(G.level/4))}
+function interval(){return Math.max(1.2,3.4-G.level*0.12)/settings.speed}
+function baseSpeed(){return (20+G.level*4.5)*settings.speed}
+function spawn(){
+  const d=pickWord();
+  const el=document.createElement('div');stage.appendChild(el);
+  const w={d,stage:'en',x:0,y:-60,speed:baseSpeed()*(0.85+Math.random()*0.3),el,typed:-1,h:0,wd:0};
+  renderCard(w,0);
+  const W=stage.clientWidth;
+  let best=10,bestScore=-1;
+  for(let i=0;i<14;i++){
+    const x=10+Math.random()*Math.max(1,W-w.wd-20);
+    let sc=1e9;for(const o of G.words){if(o.y<150)sc=Math.min(sc,Math.abs(o.x-x))}
+    if(sc>bestScore){bestScore=sc;best=x}
+  }
+  w.x=best;G.words.push(w);place(w);
+}
+function place(w){w.el.style.transform=`translate(${w.x}px,${w.y}px)`}
+function renderCard(w,typed){
+  const t=w.stage==='en'?w.d.en:w.d.vi;
+  w.el.className='w '+w.stage+' '+w.d.pos+(typed?' act':'');
+  const tag=w.stage==='en'?POS_VI[w.d.pos]||w.d.pos:w.d.en;
+  w.el.innerHTML=`<em class="tag">${esc(tag)}</em><span><span class="done">${esc(t.slice(0,typed))}</span>${esc(t.slice(typed))}</span>`;
+  w.typed=typed;w.h=w.el.offsetHeight;w.wd=w.el.offsetWidth;
+}
+function wordEq(a,b){if(settings.noDia)return plain(a)===plain(b);const x=splitTone(a),y=splitTone(b);return x.base===y.base&&x.tone===y.tone}
+function viPrefix(c,t){
+  const cw=c.split(' '),tw=t.split(' ');
+  if(cw.length>tw.length)return false;
+  for(let i=0;i<cw.length-1;i++)if(!wordEq(cw[i],tw[i]))return false;
+  return plain(tw[cw.length-1]).startsWith(plain(cw[cw.length-1]));
+}
+function viEqual(c,t){const cw=c.split(' '),tw=t.split(' ');return cw.length===tw.length&&cw.every((x,i)=>wordEq(x,tw[i]))}
+function matches(w,b){return w.stage==='en'?w.d.en.startsWith(b):viPrefix(compose(b,settings.method),w.d.vi)}
+function isComplete(w,b){return w.stage==='en'?w.d.en===b:viEqual(compose(b,settings.method),w.d.vi)}
+function typedLen(w,b){if(!b||!matches(w,b))return 0;return w.stage==='en'?b.length:compose(b,settings.method).length}
+function refreshCards(){for(const w of G.words){const n=typedLen(w,G.buf);if(n!==w.typed)renderCard(w,n)}}
+function updateInput(){
+  $('#raw').textContent=G.buf?G.buf:'';
+  const vi=G.words.some(w=>w.stage==='vi'&&G.buf&&matches(w,G.buf));
+  $('#comp').textContent=G.buf&&vi?'→ '+compose(G.buf,settings.method):'';
+  $('#hint').textContent=G.buf?'':'Gõ từ đang rơi…'+(G.words.some(w=>w.stage==='vi')?' (từ màu xanh: gõ nghĩa tiếng Việt, kiểu '+(settings.method==='telex'?'Telex':'VNI')+')':'');
+}
+function flashErr(){const b=$('#inputbar');b.classList.remove('err');void b.offsetWidth;b.classList.add('err')}
+function tryChar(ch){
+  const nb=G.buf+ch;
+  const cands=G.words.filter(w=>matches(w,nb));
+  if(!cands.length){G.errors++;G.combo=0;flashErr();hud();return}
+  G.buf=nb;G.correct++;
+  const done=cands.filter(w=>isComplete(w,nb)).sort((a,b)=>b.y-a.y)[0];
+  if(done){G.buf='';onComplete(done)}
+  refreshCards();updateInput();
+}
+function mult(){return 1+Math.min(G.combo,20)*0.1}
+function addScore(len){G.score+=Math.round(len*10*mult())}
+function speak(t){if(!settings.sound||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+function onComplete(w){
+  G.combo++;addScore((w.stage==='en'?w.d.en:w.d.vi).length);
+  if(w.stage==='en'){
+    speak(w.d.en);
+    if(settings.mode==='both'){w.stage='vi';w.y=Math.max(-40,w.y-60);renderCard(w,0);place(w);return}
+  }
+  finishWord(w);
+}
+function prog(id){return PROG[id]||(PROG[id]={box:0,ok:0,miss:0})}
+function removeWord(w){G.words=G.words.filter(x=>x!==w);w.el.classList.add('pop');setTimeout(()=>w.el.remove(),350)}
+function finishWord(w){
+  removeWord(w);const p=prog(w.d.id);p.ok++;p.box=Math.min(4,p.box+1);ls.set('tl_prog',PROG);
+  G.learned.add(w.d.id);G.done++;
+  if(G.done%8===0){G.level++;toast('Mốc '+Math.min(G.level,20)+'/20');if(G.level>20){end('win');return}}
+  hud();
+}
+function miss(w){
+  removeWord(w);G.lives--;G.combo=0;
+  const p=prog(w.d.id);p.miss++;p.box=0;ls.set('tl_prog',PROG);G.missed.push(w.d);
+  if(G.buf&&!G.words.some(x=>matches(x,G.buf)))G.buf='';
+  refreshCards();updateInput();hud();
+  if(G.lives<=0)end('lose');
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,1200)}
+function wpm(){return G.elapsed>3?Math.round(G.correct/5/(G.elapsed/60)):0}
+function hud(){
+  $('#hScore').textContent='🏆 '+G.score;
+  $('#hLevel').textContent='Mốc '+Math.min(G.level,20)+'/20 · '+G.topicLabel;
+  $('#hWpm').textContent=wpm()+' WPM';
+  $('#hCombo').textContent='x'+mult().toFixed(1);
+  $('#hearts').textContent='♥'.repeat(Math.max(0,G.lives));
+}
+function loop(t){
+  if(!G||G.over)return;
+  const dt=Math.min(0.05,(t-G.last)/1000);G.last=t;
+  if(!G.paused){
+    G.elapsed+=dt;G.spawnT-=dt;
+    if((G.spawnT<=0&&G.words.length<maxW())||G.words.length===0){spawn();G.spawnT=interval()}
+    const H=stage.clientHeight;
+    for(const w of [...G.words]){
+      w.y+=w.speed*dt;place(w);
+      if(w.y+w.h>=H-6){miss(w);if(G.over)return}
+    }
+    if(((G.elapsed*10)|0)%10===0)hud();
+  }
+  requestAnimationFrame(loop);
+}
+function end(kind){
+  G.over=true;
+  const acc=G.correct+G.errors?Math.round(G.correct*100/(G.correct+G.errors)):100;
+  const w=wpm();
+  if(G.score>BEST.score)BEST.score=G.score;if(w>BEST.wpm)BEST.wpm=w;ls.set('tl_best',BEST);
+  const seen=new Set();const miss=G.missed.filter(d=>!seen.has(d.id)&&seen.add(d.id));
+  showOverlay(`<h3>${kind==='win'?'🎉 Hoàn thành 20 mốc!':'Hết mạng rồi!'}</h3>
+  <div class="kv"><div><b>${G.score}</b><span>điểm</span></div><div><b>${G.learned.size}</b><span>từ gõ trọn vẹn</span></div>
+  <div><b>${w}</b><span>WPM</span></div><div><b>${acc}%</b><span>độ chính xác</span></div></div>
+  ${miss.length?`<b>Từ bị rơi (sẽ xuất hiện lại để ôn):</b><ul class="miss">${miss.map(d=>`<li>${esc(d.en)} — ${esc(d.vi)}</li>`).join('')}</ul>`:''}
+  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="toMenu">Về menu</button></div>`);
+  $('#again').onclick=startGame;$('#toMenu').onclick=toMenu;
+}
+function toMenu(){hideOverlay();G=null;document.body.classList.remove('playing');renderMenu()}
+function showOverlay(h){$('#ovc').innerHTML=h;$('#overlay').style.display='flex'}
+function hideOverlay(){$('#overlay').style.display='none'}
+function setPause(p){
+  if(!G||G.over)return;G.paused=p;
+  if(p)showOverlay(`<h3>Tạm dừng</h3><div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="resume">Tiếp tục</button><button class="btn ghost" id="quit">Thoát về menu</button></div>`);
+  else hideOverlay();
+  if(p){$('#resume').onclick=()=>setPause(false);$('#quit').onclick=toMenu}
+  else G.last=performance.now();
+}
+$('#pauseBtn').onclick=()=>setPause(!G.paused);
+$('#exitBtn').onclick=()=>{if(G){setPause(true)}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.over&&!G.paused)setPause(true)});
+document.addEventListener('keydown',e=>{
+  if(!G||G.over)return;
+  if(e.key==='Escape'){setPause(!G.paused);return}
+  if(G.paused||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==='Backspace'){e.preventDefault();G.buf=G.buf.slice(0,-1);refreshCards();updateInput();return}
+  if(e.key.length===1){
+    e.preventDefault();if(e.repeat)return;
+    if(e.key===' '&&!G.buf)return;
+    tryChar(e.key.toLowerCase());
+  }
+});
+buildAll();renderMenu();
+</script>
+</body>
+</html>
