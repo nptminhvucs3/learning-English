@@ -67,6 +67,9 @@ linear-gradient(#150f35,#2a1457 60%,#33164f)}
 #inputbar{padding:12px 18px;background:var(--panel);border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;min-height:62px}
 #raw{color:var(--mute);font-family:ui-monospace,Consolas,monospace}
 #comp{font-size:24px;font-weight:800;min-width:120px}
+#typer{background:#0d1029;border:2px solid var(--line);border-radius:10px;color:var(--text);font:700 22px ui-monospace,Consolas,monospace;padding:8px 12px;width:min(340px,40vw);outline:none}
+#typer:focus{border-color:var(--accent)}
+#typer.bad{border-color:var(--bad);color:#ffb4bf}
 #inputbar.err{animation:shake .25s;background:#3a1020}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 #overlay{position:fixed;inset:0;background:rgba(5,6,20,.82);display:none;align-items:center;justify-content:center;z-index:10}
@@ -82,7 +85,7 @@ linear-gradient(#150f35,#2a1457 60%,#33164f)}
 <header><div class="logo">TypeLingo</div><div class="sub">Gõ từ tiếng Anh → hiện nghĩa → gõ nghĩa tiếng Việt</div></header>
 
 <section id="menu">
-  <div class="warn">Trước khi chơi: hãy <b>tắt Unikey / bộ gõ tiếng Việt của máy</b> (để chế độ gõ tiếng Anh). Game đã có bộ gõ Telex/VNI riêng, chỉ bật khi từ rơi đang ở bước "gõ nghĩa tiếng Việt", còn từ tiếng Anh luôn gõ thuần.</div>
+  <div class="warn">Game có bộ gõ Telex/VNI riêng cho bước gõ nghĩa tiếng Việt, nên <b>cách ổn định nhất là tắt Unikey (để chế độ E) khi chơi</b>. Nếu để Unikey bật, game vẫn cố đọc đúng chữ, nhưng một số từ tiếng Anh (có w, s, f, r, x, j, đôi nguyên âm) có thể bị Unikey biến đổi.</div>
   <h2>Thống kê của bạn</h2>
   <div class="stats" id="stats"></div>
   <h2>Chọn chủ đề (bỏ trống = tất cả)</h2>
@@ -94,9 +97,11 @@ linear-gradient(#150f35,#2a1457 60%,#33164f)}
     <label>Kiểu gõ <select id="sMethod"><option value="telex">Telex</option><option value="vni">VNI</option></select></label>
     <label>Chế độ <select id="sMode"><option value="both">Anh → Việt (2 bước)</option><option value="en">Chỉ gõ tiếng Anh</option></select></label>
     <label><input type="checkbox" id="sNoDia"> Gõ không dấu vẫn tính đúng</label>
-    <label><input type="checkbox" id="sSound"> Phát âm khi gõ đúng</label>
+    <label><input type="checkbox" id="sSpeakEn"> Đọc từ tiếng Anh sau khi gõ xong</label>
+    <label><input type="checkbox" id="sSpeakVi"> Đọc nghĩa tiếng Việt sau khi gõ xong</label>
     <label>Tốc độ <input type="range" id="sSpeed" min="0.6" max="1.8" step="0.1"> <span id="sSpeedV"></span></label>
   </div>
+  <p class="note" id="voiceNote"></p>
   <div style="margin:22px 0;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <button class="btn" id="startBtn">▶ Bắt đầu</button>
     <span class="note" id="poolInfo"></span>
@@ -123,7 +128,7 @@ linear-gradient(#150f35,#2a1457 60%,#33164f)}
     <button class="ib" id="exitBtn" title="Thoát">✕</button>
   </div>
   <div id="stage"><div id="danger"></div><div id="toast"></div></div>
-  <div id="inputbar"><span id="raw"></span><span id="comp"></span><span class="note" id="hint"></span></div>
+  <div id="inputbar"><input id="typer" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="gõ ở đây"><span id="comp"></span><span class="note" id="hint"></span></div>
 </section>
 <div id="overlay"><div class="card" id="ovc"></div></div>
 
@@ -152,6 +157,13 @@ function toneIndex(L){
   const hasFinal=idx[idx.length-1]<n-1;
   return hasFinal?idx[1]:idx[0];
 }
+function decompVi(c){
+  if(c==='đ')return{b:'d',m:'-',t:0};
+  const d=c.normalize('NFD');const b=d[0];let m='',t=0;
+  if(VOW.indexOf(b)<0)return null;
+  for(const x of d.slice(1)){if(x==='\u0302')m='^';else if(x==='\u0306')m='(';else if(x==='\u031B')m='+';else if(TONEOF[x])t=TONEOF[x]}
+  return{b,m,t};
+}
 function findBack(L,set){for(let i=L.length-1;i>=0;i--){if(set.indexOf(L[i].b)>=0&&!L[i].m)return i}return -1}
 function composeWord(raw,method){
   const L=[];let tone=0;
@@ -160,6 +172,7 @@ function composeWord(raw,method){
   const setTone=(t,c)=>{if(!hasV()){lit(c);return}if(tone===t){tone=0;lit(c)}else tone=t};
   const uoPair=()=>{const n=L.length;return n>=2&&L[n-2].b==='u'&&L[n-1].b==='o'&&!L[n-2].m&&!L[n-1].m&&!(n>=3&&L[n-3].b==='q')};
   for(const c of raw){
+    if(c.charCodeAt(0)>127){const d=decompVi(c);if(d){L.push({b:d.b,m:d.m});if(d.t)tone=d.t;continue}}
     const n=L.length,last=L[n-1];
     if(method==='telex'){
       if(c==='w'){
@@ -210,7 +223,9 @@ const $=s=>document.querySelector(s);
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const POS_VI={n:'Danh từ',v:'Động từ',adj:'Tính từ',adv:'Trạng từ',prep:'Giới từ',conj:'Liên từ'};
-let settings=Object.assign({method:'telex',noDia:false,sound:true,speed:1,mode:'both'},ls.get('tl_settings',{}));
+const _saved=ls.get('tl_settings',{});
+let settings=Object.assign({method:'telex',noDia:false,speakEn:true,speakVi:true,speed:1,mode:'both'},_saved);
+if(_saved.sound===false&&_saved.speakEn===undefined){settings.speakEn=false;settings.speakVi=false}
 let PROG=ls.get('tl_prog',{});
 let BEST=ls.get('tl_best',{score:0,wpm:0});
 let ALL=[],TOPICS=[];
@@ -247,7 +262,7 @@ function renderMenu(){
   $('#topics').innerHTML=h;
   $('#poschips').innerHTML=Object.keys(POS_VI).map(p=>`<span class="chip ${selPos.has(p)?'sel':''}" data-p="${p}">${POS_VI[p]} (${p})</span>`).join('');
   $('#poolInfo').textContent=`Sẽ chơi với ${poolFor().length} từ`;
-  $('#sMethod').value=settings.method;$('#sMode').value=settings.mode;$('#sNoDia').checked=settings.noDia;$('#sSound').checked=settings.sound;
+  $('#sMethod').value=settings.method;$('#sMode').value=settings.mode;$('#sNoDia').checked=settings.noDia;$('#sSpeakEn').checked=settings.speakEn;$('#sSpeakVi').checked=settings.speakVi;renderVoiceNote();
   $('#sSpeed').value=settings.speed;$('#sSpeedV').textContent='x'+settings.speed;
 }
 $('#topics').addEventListener('click',e=>{
@@ -261,7 +276,8 @@ function saveSettings(){ls.set('tl_settings',settings)}
 $('#sMethod').onchange=e=>{settings.method=e.target.value;saveSettings()};
 $('#sMode').onchange=e=>{settings.mode=e.target.value;saveSettings()};
 $('#sNoDia').onchange=e=>{settings.noDia=e.target.checked;saveSettings()};
-$('#sSound').onchange=e=>{settings.sound=e.target.checked;saveSettings()};
+$('#sSpeakEn').onchange=e=>{settings.speakEn=e.target.checked;saveSettings()};
+$('#sSpeakVi').onchange=e=>{settings.speakVi=e.target.checked;saveSettings()};
 $('#sSpeed').oninput=e=>{settings.speed=+e.target.value;$('#sSpeedV').textContent='x'+settings.speed;saveSettings()};
 $('#resetProg').onclick=()=>{if(confirm('Xóa toàn bộ tiến độ học?')){PROG={};ls.set('tl_prog',PROG);renderMenu()}};
 $('#clearCustom').onclick=()=>{if(confirm('Xóa tất cả từ bạn đã nhập?')){ls.set('tl_custom',[]);buildAll();renderMenu();$('#csvMsg').textContent='Đã xóa từ nhập thêm.'}};
@@ -303,9 +319,10 @@ function startGame(){
   const pool=poolFor();
   if(!pool.length){alert('Chưa có từ nào để chơi. Hãy chọn chủ đề khác hoặc chơi thêm để có từ cần ôn.');return}
   G={pool,topicLabel:selTopics.has('__review')?'Ôn tập':(selTopics.size===1?[...selTopics][0]:(selTopics.size?selTopics.size+' chủ đề':'Tất cả chủ đề')),
-     words:[],score:0,lives:5,level:1,done:0,combo:0,buf:'',correct:0,errors:0,elapsed:0,spawnT:0,missed:[],learned:new Set(),paused:false,over:false,last:performance.now()};
+     words:[],score:0,lives:5,level:1,done:0,combo:0,buf:'',correct:0,errors:0,elapsed:0,spawnT:0,missed:[],learned:new Set(),paused:false,over:false,dirty:false,imeHint:false,imeSeen:false,composing:false,last:performance.now()};
   document.body.classList.add('playing');hideOverlay();
   stage.querySelectorAll('.w').forEach(e=>e.remove());
+  typer.value='';typer.focus();
   hud();updateInput();
   requestAnimationFrame(loop);
 }
@@ -335,43 +352,103 @@ function renderCard(w,typed){
   w.el.innerHTML=`<em class="tag">${esc(tag)}</em><span><span class="done">${esc(t.slice(0,typed))}</span>${esc(t.slice(typed))}</span>`;
   w.typed=typed;w.h=w.el.offsetHeight;w.wd=w.el.offsetWidth;
 }
+//#LOGIC_START
 function wordEq(a,b){if(settings.noDia)return plain(a)===plain(b);const x=splitTone(a),y=splitTone(b);return x.base===y.base&&x.tone===y.tone}
-function viPrefix(c,t){
-  const cw=c.split(' '),tw=t.split(' ');
-  if(cw.length>tw.length)return false;
-  for(let i=0;i<cw.length-1;i++)if(!wordEq(cw[i],tw[i]))return false;
-  return plain(tw[cw.length-1]).startsWith(plain(cw[cw.length-1]));
+// So khớp 1 từ tiếng Việt: chấp nhận (1) gõ Telex/VNI của game, (2) gõ chữ nguyên (từ mượn như sofa, taxi, web),
+// (3) chữ đã bị Unikey biến đổi. Trả về {len,done} hoặc null.
+function viWordScan(rw,t){
+  const c=compose(rw,settings.method),cand=[];
+  if(plain(t).startsWith(plain(c)))cand.push({len:c.length,done:wordEq(c,t)});
+  if(t.startsWith(rw))cand.push({len:rw.length,done:rw===t});
+  if(compose(t,'telex')===c)cand.push({len:t.length,done:true});
+  else for(let k=1;k<t.length;k++)if(compose(t.slice(0,k),'telex')===c){cand.push({len:k,done:false});break}
+  if(!cand.length)return null;
+  return cand.find(x=>x.done)||cand[0];
 }
-function viEqual(c,t){const cw=c.split(' '),tw=t.split(' ');return cw.length===tw.length&&cw.every((x,i)=>wordEq(x,tw[i]))}
-function matches(w,b){return w.stage==='en'?w.d.en.startsWith(b):viPrefix(compose(b,settings.method),w.d.vi)}
-function isComplete(w,b){return w.stage==='en'?w.d.en===b:viEqual(compose(b,settings.method),w.d.vi)}
-function typedLen(w,b){if(!b||!matches(w,b))return 0;return w.stage==='en'?b.length:compose(b,settings.method).length}
+function viScan(val,t){
+  const rw=val.split(' '),tw=t.split(' ');
+  if(rw.length>tw.length)return null;
+  let len=0,done=false;
+  for(let i=0;i<rw.length;i++){
+    const r=viWordScan(rw[i],tw[i]),last=i===rw.length-1;
+    if(!r||(!last&&!r.done))return null;
+    len+=r.len+(last?0:1);
+    if(last)done=r.done&&rw.length===tw.length;
+  }
+  return{len,done};
+}
+// Từ tiếng Anh: chấp nhận chữ thô (Unikey tắt) HOẶC chữ đã bị Unikey-Telex biến đổi (Unikey bật)
+function enK(w,val){
+  const t=w.d.en;
+  if(t.startsWith(val))return{k:val.length,done:val===t};
+  if(compose(t,'telex')===val)return{k:t.length,done:true};
+  for(let k=1;k<t.length;k++)if(compose(t.slice(0,k),'telex')===val)return{k,done:false};
+  return null;
+}
+function matches(w,val){return w.stage==='en'?enK(w,val)!==null:viScan(val,w.d.vi)!==null}
+function isComplete(w,val){if(w.stage==='en'){const r=enK(w,val);return !!(r&&r.done)}const r=viScan(val,w.d.vi);return !!(r&&r.done)}
+function typedLen(w,val){if(!val)return 0;if(w.stage==='en'){const r=enK(w,val);return r?r.k:0}const r=viScan(val,w.d.vi);return r?r.len:0}
+//#LOGIC_END
+
+const typer=$('#typer');
 function refreshCards(){for(const w of G.words){const n=typedLen(w,G.buf);if(n!==w.typed)renderCard(w,n)}}
 function updateInput(){
-  $('#raw').textContent=G.buf?G.buf:'';
-  const vi=G.words.some(w=>w.stage==='vi'&&G.buf&&matches(w,G.buf));
-  $('#comp').textContent=G.buf&&vi?'→ '+compose(G.buf,settings.method):'';
-  $('#hint').textContent=G.buf?'':'Gõ từ đang rơi…'+(G.words.some(w=>w.stage==='vi')?' (từ màu xanh: gõ nghĩa tiếng Việt, kiểu '+(settings.method==='telex'?'Telex':'VNI')+')':'');
+  const val=G.buf;
+  const vi=!!val&&G.words.some(w=>w.stage==='vi'&&matches(w,val));
+  $('#comp').textContent=vi?'→ '+compose(val,settings.method):'';
+  typer.classList.toggle('bad',!!G.dirty);
+  let h='';
+  if(G.imeHint)h='⚠ Bộ gõ tiếng Việt của máy (Unikey…) đang chen vào làm chữ bị biến đổi. Hãy tắt nó (chuyển V → E) rồi gõ lại.';
+  else if(G.dirty)h='Chưa khớp, nhấn Backspace để sửa.';
+  else if(!val)h='Gõ từ đang rơi…'+(G.words.some(w=>w.stage==='vi')?' (từ màu xanh: gõ nghĩa tiếng Việt, kiểu '+(settings.method==='telex'?'Telex':'VNI')+')':'');
+  $('#hint').textContent=h;
 }
 function flashErr(){const b=$('#inputbar');b.classList.remove('err');void b.offsetWidth;b.classList.add('err')}
-function tryChar(ch){
-  const nb=G.buf+ch;
-  const cands=G.words.filter(w=>matches(w,nb));
-  if(!cands.length){G.errors++;G.combo=0;flashErr();hud();return}
-  G.buf=nb;G.correct++;
-  const done=cands.filter(w=>isComplete(w,nb)).sort((a,b)=>b.y-a.y)[0];
-  if(done){G.buf='';onComplete(done)}
+// Xử lý mỗi khi nội dung ô nhập thay đổi (đúng với cả Unikey bật lẫn tắt)
+function onType(raw){
+  if(!G||G.over||G.paused)return;
+  const val=raw.toLowerCase().replace(/^\s+/,'');
+  if(val!==raw)typer.value=val;
+  const prev=G.buf;
+  if(val===prev)return;
+  const cands=G.words.filter(w=>matches(w,val));
+  if(!cands.length){
+    const isAppend=val.length===prev.length+1&&val.startsWith(prev)&&val.charCodeAt(val.length-1)<128;
+    if(isAppend){typer.value=prev;G.errors++;G.combo=0;flashErr();hud();return}
+    G.buf=val;G.dirty=true;
+    if(val&&((/[^\x00-\x7f]/.test(val)&&!G.words.some(w=>w.stage==='vi'))||G.imeSeen))G.imeHint=true;
+    refreshCards();updateInput();return;
+  }
+  G.dirty=false;G.imeHint=false;
+  if(val.length>prev.length)G.correct+=val.length-prev.length;
+  G.buf=val;
+  const done=cands.filter(w=>isComplete(w,val)).sort((a,b)=>b.y-a.y)[0];
+  if(done){G.buf='';typer.value='';onComplete(done)}
   refreshCards();updateInput();
 }
+
 function mult(){return 1+Math.min(G.combo,20)*0.1}
 function addScore(len){G.score+=Math.round(len*10*mult())}
-function speak(t){if(!settings.sound||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u)}catch(e){}}
+let VOICES=[];
+function loadVoices(){try{VOICES=speechSynthesis.getVoices()||[]}catch(e){VOICES=[]}}
+function voiceFor(lang){const l=lang.toLowerCase();const norm=v=>v.lang.toLowerCase().replace('_','-');return VOICES.find(v=>norm(v)===l)||VOICES.find(v=>norm(v).startsWith(l.slice(0,2)))}
+function renderVoiceNote(){
+  const el=$('#voiceNote');if(!el)return;
+  if(!window.speechSynthesis){el.textContent='Trình duyệt này không hỗ trợ giọng đọc.';return}
+  const vi=voiceFor('vi-VN'),en=voiceFor('en-US');
+  el.textContent='Giọng đọc: tiếng Anh '+(en?'✓':'✗ chưa có')+' · tiếng Việt '+(vi?'✓ ('+vi.name+')':'✗ trình duyệt/máy chưa có giọng tiếng Việt (Microsoft Edge thường có sẵn)');
+}
+if(window.speechSynthesis){loadVoices();try{speechSynthesis.addEventListener('voiceschanged',()=>{loadVoices();renderVoiceNote()})}catch(e){}}
+function speak(t,lang){
+  if(!window.speechSynthesis)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=lang;u.rate=.9;const v=voiceFor(lang);if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}
+}
 function onComplete(w){
   G.combo++;addScore((w.stage==='en'?w.d.en:w.d.vi).length);
   if(w.stage==='en'){
-    speak(w.d.en);
+    if(settings.speakEn)speak(w.d.en,'en-US');
     if(settings.mode==='both'){w.stage='vi';w.y=Math.max(-40,w.y-60);renderCard(w,0);place(w);return}
-  }
+  }else if(settings.speakVi)speak(w.d.vi,'vi-VN');
   finishWord(w);
 }
 function prog(id){return PROG[id]||(PROG[id]={box:0,ok:0,miss:0})}
@@ -385,7 +462,7 @@ function finishWord(w){
 function miss(w){
   removeWord(w);G.lives--;G.combo=0;
   const p=prog(w.d.id);p.miss++;p.box=0;ls.set('tl_prog',PROG);G.missed.push(w.d);
-  if(G.buf&&!G.words.some(x=>matches(x,G.buf)))G.buf='';
+  if(G.buf&&!G.words.some(x=>matches(x,G.buf))){G.buf='';typer.value='';G.dirty=false}
   refreshCards();updateInput();hud();
   if(G.lives<=0)end('lose');
 }
@@ -414,7 +491,7 @@ function loop(t){
   requestAnimationFrame(loop);
 }
 function end(kind){
-  G.over=true;
+  G.over=true;typer.blur();
   const acc=G.correct+G.errors?Math.round(G.correct*100/(G.correct+G.errors)):100;
   const w=wpm();
   if(G.score>BEST.score)BEST.score=G.score;if(w>BEST.wpm)BEST.wpm=w;ls.set('tl_best',BEST);
@@ -426,29 +503,31 @@ function end(kind){
   <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" id="again">Chơi lại</button><button class="btn ghost" id="toMenu">Về menu</button></div>`);
   $('#again').onclick=startGame;$('#toMenu').onclick=toMenu;
 }
-function toMenu(){hideOverlay();G=null;document.body.classList.remove('playing');renderMenu()}
+function toMenu(){typer.blur();hideOverlay();G=null;document.body.classList.remove('playing');renderMenu()}
 function showOverlay(h){$('#ovc').innerHTML=h;$('#overlay').style.display='flex'}
 function hideOverlay(){$('#overlay').style.display='none'}
 function setPause(p){
   if(!G||G.over)return;G.paused=p;
   if(p)showOverlay(`<h3>Tạm dừng</h3><div style="display:flex;gap:10px;margin-top:14px"><button class="btn" id="resume">Tiếp tục</button><button class="btn ghost" id="quit">Thoát về menu</button></div>`);
   else hideOverlay();
-  if(p){$('#resume').onclick=()=>setPause(false);$('#quit').onclick=toMenu}
-  else G.last=performance.now();
+  if(p){typer.blur();$('#resume').onclick=()=>setPause(false);$('#quit').onclick=toMenu}
+  else{G.last=performance.now();typer.focus()}
 }
 $('#pauseBtn').onclick=()=>setPause(!G.paused);
 $('#exitBtn').onclick=()=>{if(G){setPause(true)}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.over&&!G.paused)setPause(true)});
+typer.addEventListener('compositionstart',()=>{if(G)G.composing=true});
+typer.addEventListener('compositionend',()=>{if(G){G.composing=false;onType(typer.value)}});
+typer.addEventListener('input',e=>{if(!G)return;if(e.isComposing||G.composing)return;onType(typer.value)});
+stage.addEventListener('mousedown',e=>{e.preventDefault();if(G&&!G.paused)typer.focus()});
 document.addEventListener('keydown',e=>{
   if(!G||G.over)return;
   if(e.key==='Escape'){setPause(!G.paused);return}
-  if(G.paused||e.ctrlKey||e.metaKey||e.altKey)return;
-  if(e.key==='Backspace'){e.preventDefault();G.buf=G.buf.slice(0,-1);refreshCards();updateInput();return}
-  if(e.key.length===1){
-    e.preventDefault();if(e.repeat)return;
-    if(e.key===' '&&!G.buf)return;
-    tryChar(e.key.toLowerCase());
-  }
+  if(G.paused)return;
+  if(e.key==='Process'||e.keyCode===229)G.imeSeen=true;
+  if(e.key==='Tab'||e.key==='Enter'){e.preventDefault();return}
+  if(e.repeat&&e.key.length===1){e.preventDefault();return}
+  if(document.activeElement!==typer)typer.focus();
 });
 buildAll();renderMenu();
 </script>
